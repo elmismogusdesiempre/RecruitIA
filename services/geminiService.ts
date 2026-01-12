@@ -2,6 +2,13 @@ import { Content, GoogleGenAI, Type, Chat } from "@google/genai";
 import { JobConfig, Message, ReportData } from "../types";
 import { QuotaManager, QuotaExceededError } from "./quotaManager";
 
+// Type definition for process to satisfy TS compiler in browser environment
+declare const process: {
+  env: {
+    API_KEY: string;
+  }
+};
+
 // Initialize the client. API_KEY is injected by the environment.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -19,7 +26,7 @@ export const generateJobSummary = async (description: string, additionalContext?
       Task: Analyze the job description and create a VERY SHORT (approx 15 words) summary for a candidate card.
       
       Requirements:
-      - Extract and combine the most important details: Job Title, Company, Location, Salary (if present), Schedule (if present), and Key Requirement.
+      - Extract and combine the most important details: Job Title, Company, Location, Salary (if present), and Key Requirement.
       - Style: Bold, direct, and professional.
       - Length: Strictly under 20 words.
       - Output Language: ${language}.
