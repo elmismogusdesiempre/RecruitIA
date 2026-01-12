@@ -10,7 +10,8 @@ declare const process: {
 };
 
 // Initialize the client. API_KEY is injected by the environment.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// We use a fallback to empty string to prevent app crash on load if the key is missing in the environment.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 
 /**
  * Generates a punchy 15-word summary of the job for the intro card.
