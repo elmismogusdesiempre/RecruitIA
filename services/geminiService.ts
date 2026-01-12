@@ -191,7 +191,8 @@ export const startInterviewSession = async (config: JobConfig) => {
 
 /**
  * Generates a structured report based on the interview transcript.
- * Uses Search Grounding to verify any company/tech claims if possible (simulated context).
+ * NOTE: Search grounding is disabled here to ensure strict JSON output compliance,
+ * as grounding responses often break JSON parsing.
  */
 export const generateInterviewReport = async (
   config: JobConfig,
@@ -220,8 +221,6 @@ export const generateInterviewReport = async (
     - hiringRecommendation: A string (Strong Hire, Hire, Leaning Hire, Leaning No Hire, No Hire).
     
     IMPORTANT: Write the content of the summary, strengths, weaknesses and recommendation in ${config.language}.
-    
-    Use Google Search to verify if any specific technologies or past companies mentioned are real and relevant (if specific obscure names are used).
   `;
 
   try {
@@ -229,7 +228,8 @@ export const generateInterviewReport = async (
       model: "gemini-3-flash-preview", // Fast model for summarization
       contents: prompt,
       config: {
-        tools: [{ googleSearch: {} }],
+        // Disabled tools to prevent JSON parsing issues
+        // tools: [{ googleSearch: {} }], 
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -246,20 +246,17 @@ export const generateInterviewReport = async (
       },
     });
 
-    const jsonText = response.text || "{}";
+    let jsonText = response.text || "{}";
+    
+    // Aggressive cleanup: Remove markdown code blocks if the model includes them despite responseMimeType
+    jsonText = jsonText.replace(/```json\n?/, '').replace(/```\n?$/, '');
+
     const data = JSON.parse(jsonText);
     
-    // Extract grounding chunks if available
-    const groundingLinks: Array<{ title: string; uri: string }> = [];
-    if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
-      response.candidates[0].groundingMetadata.groundingChunks.forEach((chunk: any) => {
-        if (chunk.web?.uri) {
-          groundingLinks.push({ title: chunk.web.title || "Source", uri: chunk.web.uri });
-        }
-      });
-    }
-
-    return { ...data, groundingLinks };
+    return { 
+        ...data, 
+        groundingLinks: [] // No grounding links since search is disabled
+    };
 
   } catch (error) {
     if (error instanceof QuotaExceededError) throw error; // Re-throw quota errors
